@@ -39,6 +39,11 @@ The input images should be `.png`s with 512*512 resolution in RGBA format. And t
 
 ## TODO
 
+A new version with cosine series(make the code neater)
+
+Code for generating the training data
+
+FOF-smpl
 
 
 ## Citation
