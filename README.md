@@ -1,4 +1,4 @@
-# DiffuStereo: High Quality Human Reconstruction via Diffusion-based Stereo Using Sparse Cameras
+# FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
 
 **News**
 
