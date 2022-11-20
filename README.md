@@ -2,6 +2,7 @@
 
 **News**
 
+* `20/11/2022` The `speed_test.py` is added. `pip install git+https://github.com/tatsy/torchmcubes.git` for gpu marching cubes. We implement a faster mcubes, and I'm still cleaning the code.
 * `06/11/2022` The code is released. But it's not complete. I'm still updating it. 
 
 
@@ -26,6 +27,8 @@ cv2
 lmdb
 numba
 skimage
+tqdm
+pip install git+https://github.com/tatsy/torchmcubes.git
 ```
 
 ## Pretrained model
