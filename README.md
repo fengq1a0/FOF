@@ -1,5 +1,7 @@
 # FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
 
+Sorry, for the impact of COVID-19, the update of `data preprocessing` is defered.
+
 **News**
 
 * `20/11/2022` The `speed_test.py` is added. `pip install git+https://github.com/tatsy/torchmcubes.git` for gpu marching cubes. We implement a faster mcubes, and I'm still cleaning the code.
