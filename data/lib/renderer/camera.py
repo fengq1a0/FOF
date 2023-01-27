@@ -155,18 +155,15 @@ class Camera:
                                 z_near, z_far)
         
         #------------------FQ begin---------------------------------------
-        '''
-        scale = 2.1853125/2.5
+
         model_view = np.eye(4)
         perspective = np.eye(4)
-        perspective[0,0] = scale
-        perspective[1,1] = scale
-        perspective[2,2] = -0.5
+        perspective[2,2] = -1
         perspective[3,3] = 100
+
+        
+        
         '''
-        
-        
-        
         zz = -350
         zFar = 250-zz
         zNear = -250-zz
@@ -181,7 +178,7 @@ class Camera:
         perspective[3,2] = -1
         perspective[2,2] = - (zFar + zNear) / (zFar - zNear)
         perspective[2,3] = -(2 * zFar * zNear) / (zFar - zNear)
-        
+        '''
 
         #-------------------FQ end----------------------------------------
         '''
