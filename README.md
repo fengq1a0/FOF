@@ -1,4 +1,5 @@
 # FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
+It seems that I updated a wrong version checkpoint, which may not work as well as in paper. In fact, the original project has been modified to a new one, and I'm still working on it. It's very struggling to rewrite and roll back to the old version (the version in this repository). So I'll update the new version code in this repositary as soon as the new paper is completed. By then, you can get a model that is similar to the old version by changing some parameters.
 
 **News**
 * `07/01/2023` the code for `data preprocessing` is updated. 
