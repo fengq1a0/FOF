@@ -1,1 +1,0 @@
-g++ welzl.cpp -fPIC -shared -o welzl.so
