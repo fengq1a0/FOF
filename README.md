@@ -35,34 +35,34 @@ We have simplified the training process, making it easy to train and reproduce o
 >tqdm
 >pip install git+https://github.com/tatsy/torchmcubes.git
 >```
-
+>
 >## Pretrained model
-
-You can download the pretrained model and put it into the `ckpt/base` directory.
-
-[Download: pretrained model of FOF-base](https://pan.baidu.com/s/17xdfkT6UKtuX5w0nvSK6yw?pwd=89go)
-
-## Notice
-The input images should be `.png`s with 512*512 resolution in RGBA format. And the alpha channel is the mask.
-
-## TODO
-
-A new version with cosine series(make the code neater)
-
-Code for generating the training data
-
-FOF-smpl
-
-
-## Citation
-
-If you find this code useful for your research, please use the following BibTeX entry.
-
-```
-@inproceedings{li2022neurips,
-  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
-  title = {FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction},
-  booktitle = {NeurIPS},
-  year={2022},
-}
-```
+>
+>You can download the pretrained model and put it into the `ckpt/base` directory.
+>
+>[Download: pretrained model of FOF-base](https://pan.baidu.com/s/17xdfkT6UKtuX5w0nvSK6yw?pwd=89go)
+>
+>## Notice
+>The input images should be `.png`s with 512*512 resolution in RGBA format. And the alpha channel is the mask.
+>
+>## TODO
+>
+>A new version with cosine series(make the code neater)
+>
+>Code for generating the training data
+>
+>FOF-smpl
+>
+>
+>## Citation
+>
+>If you find this code useful for your research, please use the following BibTeX entry.
+>
+>```
+>@inproceedings{li2022neurips,
+>  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
+>  title = {FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction},
+>  booktitle = {NeurIPS},
+>  year={2022},
+>}
+>```
