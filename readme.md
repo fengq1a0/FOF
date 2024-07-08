@@ -29,7 +29,8 @@ cd lib/fof
 sh compile.sh
 cd ../..
 
-# 2. mc 
+# 2. mc
+# You need Eigen to compile this.
 cd lib/mc
 sh compile.sh
 cd ../..
