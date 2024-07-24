@@ -51,4 +51,4 @@ FOF
 ```model32.pth``` and ```model48.pth``` correspond to HR-Net-32 and HR-Net-48 version, respectively. Both of them are trained on THuman2.0 dataset only.
 
 ## Data preprocess
-You will need triangle mesh and corresponding SMPL mesh to train the model. Texture is not needed and the meshes don't have to be watertight(watertight is better)! However, we prefer the meshes are clean, without floating fragments. Check the data preprocess code for more details.
+You will need triangle mesh and corresponding SMPL mesh to train the model. Texture is not needed and the meshes don't have to be watertight (which is better)! However, we prefer the meshes are clean, without floating fragments. Check the data preprocess code for more details.
