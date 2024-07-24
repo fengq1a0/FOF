@@ -37,4 +37,15 @@ cd ../..
 ```
 Check train.py and test.py, have fun with this repo!
 ## Checkpoints
-Uploading...
+You can get pretrained checkpoints [here](https://drive.google.com/drive/folders/1ocS0YND9vtdFN8Z99BoUdPu-ktSUwt5x?usp=sharing).
+Put them in ```./ckpt```.  They should be organized as shown below:
+```
+FOF
+├─lib
+└─ckpt
+  ├─model32.pth
+  ├─model48.pth
+  ├─netB.pth
+  └─netF.pth
+```
+```model32.pth``` and ```model48.pth``` correspond to HR-Net-32 and HR-Net-48 version respectively. Both of them are trained on THuman2.0 dataset only.
