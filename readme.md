@@ -43,12 +43,67 @@ Put them in ```./ckpt```.  They should be organized as shown below:
 FOF
 ├─lib
 └─ckpt
-  ├─model32.pth
-  ├─model48.pth
-  ├─netB.pth
-  └─netF.pth
+    ├─model32.pth
+    ├─model48.pth
+    ├─netB.pth
+    └─netF.pth
 ```
 ```model32.pth``` and ```model48.pth``` correspond to HR-Net-32 and HR-Net-48 version, respectively. Both of them are trained on THuman2.0 dataset only.
 
 ## Data preprocess
-You will need triangle mesh and corresponding SMPL mesh to train the model. Texture is not needed and the meshes don't have to be watertight (which is better)! However, we prefer the meshes are clean, without floating fragments. Check the data preprocess code for more details.
+You will need triangle mesh and corresponding SMPL-X mesh to train the model. Texture is not needed and the meshes don't have to be watertight (which is better)! However, we prefer the meshes are clean, without floating fragments. Check the data preprocess code ```preprocess.py``` for more details. You can see the seven steps we do in the file. Before run it, you will need to
+```
+pip install cyminiball
+```
+Check the code, you can use the function ```work``` to process you data. If you are using THuman2.0 dataset, you can organize your data as shown below.
+
+Your THuman2.0 mesh or your scanned mesh. (Only xxxx.obj is used)
+```
+$base_mesh        # line 139 in preprocess.py
+├───0000
+|   ├─0000.obj
+|   ├─material0.jpeg
+|   └─material0.mtl
+├───0001
+├───0002
+...
+└───0525
+```
+
+Corresponding SMPL-X mesh. (SMPL is also OK, but you will need to modify the dataloader yourself. Just a few lines.)
+```
+$base_smpl        # line 140 in preprocess.py
+├───0000
+|   ├─mesh_smplx.obj
+|   └─smplx_param.pkl
+├───0001
+├───0002
+...
+└───0525
+```
+
+The path you want to store the processed data. Dataloader also read data from it. You don't need to create it. After running ```preprocess.py```, it looks like: 
+```
+$base_out         # line 141 in preprocess.py
+├───100k-180
+|   ├─0000.ply
+|   ├─0001.ply
+|   ...
+|   └─0525.ply
+├───smpl-180
+|   ├─0000.ply
+|   ├─0001.ply
+|   ...
+|   └─0525.ply
+└───train_th2.txt
+```
+```train_th2.txt``` lists the meshes used for training. It should look like:
+```
+0000
+0001
+0008
+...
+```
+You can check the ```.ply``` meshes in meshlab. Make sure them are well-aligned.
+
+Finally, you can change the ```line 26``` and ```line 27``` in the ```lib\dataset_mesh_only.py``` to the right path. Alternatively, you can identify them when using the TrainSet class. Now you can enjoy your training!
