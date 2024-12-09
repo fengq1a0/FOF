@@ -1,9 +1,8 @@
 # FOF-X: Towards Real-time Detailed Human Reconstruction from a Single Image
-[website](https://cic.tju.edu.cn/faculty/likun/projects/FOF/index.html) | [paper](https://cic.tju.edu.cn/faculty/likun/projects/FOF/imgs/FOF_paper.pdf)
-
-# FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
 [website](https://cic.tju.edu.cn/faculty/likun/projects/FOFX/index.html)
 
+# FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
+[website](https://cic.tju.edu.cn/faculty/likun/projects/FOF/index.html) | [paper](https://cic.tju.edu.cn/faculty/likun/projects/FOF/imgs/FOF_paper.pdf)
 
 ## Environment
 To run this code, follow the following instructions.
