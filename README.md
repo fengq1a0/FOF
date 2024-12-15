@@ -2,7 +2,7 @@
 This branch is deprecated! Please check out the [main branch](https://github.com/fengq1a0/FOF/), which offers several improvements, efficient implementation, and better performance. 
 We have simplified the training process, making it easy to train and reproduce our results. Additionally, FOF-related codes are implemented as a CUDA extension. Use it in your code!
 
-**You may find it hard to train a proper model with this branch. It's because the FOF computation in this branch is very sensitive to the mesh data. Non-watertigt mesh or self-intersection can make the coefficients unstable! So, your model is going to overfit a dataset with bias! The fof lib in the main branch doesn't have this issue, please use it instead!**
+**You may find it hard to train a proper model with this branch. It's because the FOF computation in this branch is very sensitive to the mesh data. Non-watertigt mesh or self-intersection can make the coefficients unstable! So, your model is going to overfit a dataset with bias! We have updated an extension version FOF-X in the main branch! The fof lib in the main branch doesn't have this issue, please use it instead!**
 
 ># FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
 >It seems that I updated the wrong version checkpoint, which may not work as well as in paper. In fact, the original project has been modified to a new one, and I'm still working on it. It's very difficult to rewrite and roll back to the old version (the version >in this repository). So, I'll update the new version code in this repository as soon as the new paper is completed. By then, you can get a model that is similar to the old version by changing some parameters.
