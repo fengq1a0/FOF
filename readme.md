@@ -110,23 +110,23 @@ You can check the ```.ply``` meshes in meshlab. Make sure them are well-aligned.
 
 Finally, you can change the ```line 26``` and ```line 27``` in the ```lib\dataset_mesh_only.py``` to the right path. Alternatively, you can identify them when using the TrainSet class. Now you can enjoy your training!
 
->## Citation
->
->If you find this code useful for your research, please use the following BibTeX entry.
->
->```
->@inproceedings{li2022neurips,
->  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
->  title = {FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction},
->  booktitle = {NeurIPS},
->  year={2022},
->}
->```
->```
->@inproceedings{fofx,
->  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
->  title = {FOF-X: Towards Real-time Detailed Human Reconstruction from a Single Image},
->  booktitle = {ArXiv:2412.05961},
->  year={2024},
->}
->```
+## Citation
+
+If you find this code useful for your research, please use the following BibTeX entry.
+
+```
+@inproceedings{li2022neurips,
+  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
+  title = {FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction},
+  booktitle = {NeurIPS},
+  year={2022},
+}
+```
+```
+@inproceedings{fofx,
+  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
+  title = {FOF-X: Towards Real-time Detailed Human Reconstruction from a Single Image},
+  booktitle = {ArXiv:2412.05961},
+  year={2024},
+}
+```
