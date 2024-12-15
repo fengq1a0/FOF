@@ -106,7 +106,7 @@ $base_out         # line 141 in preprocess.py
 0008
 ...
 ```
-You can check the ```.ply``` meshes in meshlab. Make sure them are well-aligned.
+You can check the ```.ply``` meshes in meshlab. Make sure they are well-aligned.
 
 Finally, you can change the ```line 26``` and ```line 27``` in the ```lib\dataset_mesh_only.py``` to the right path. Alternatively, you can identify them when using the TrainSet class. Now you can enjoy your training!
 
