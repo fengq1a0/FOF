@@ -53,7 +53,7 @@ FOF
 ```model32.pth``` and ```model48.pth``` correspond to HR-Net-32 and HR-Net-48 version, respectively. Both of them are trained on THuman2.0 dataset only.
 
 ## Data preprocess
-You will need triangle mesh and corresponding SMPL-X mesh to train the model. Texture is not needed and the meshes don't have to be watertight (which is better)! However, we prefer the meshes are clean, without floating fragments. Check the data preprocess code ```preprocess.py``` for more details. You can see the seven steps we do in the file. Before run it, you will need to
+You will need triangle mesh and corresponding SMPL-X mesh to train the model. The texture is not needed, and the meshes don't have to be watertight (which is better)! However, we prefer the meshes are clean, without floating fragments. Check the data preprocess code ```preprocess.py``` for more details. You can see the seven steps we do in the file. Before running it, you will need to
 ```
 pip install cyminiball
 ```
