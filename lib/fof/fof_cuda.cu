@@ -167,6 +167,56 @@ __global__ void fof_cuda_render_kernel1(
         }
     }
 }
+#接收光栅化后的深度点 buffer 和像素索引，然后计算每个像素的深度直方图。
+__global__ void fof_cuda_histogram_kernel(
+    torch::PackedTensorAccessor32<float,4,torch::RestrictPtrTraits> fof, // Output FOF (now histogram)
+    int* ind, // Start index for each pixel's depth points in buffer
+    int* pix, // Flattened pixel index
+    float* buffer, // Raw depth values for all pixels
+    int cnum, // Number of valid pixels (pixels with at least one depth point)
+    int num_bins, // Number of depth bins (FOF channels)
+    float min_depth, // Minimum depth for binning
+    float max_depth, // Maximum depth for binning
+    int res) // Resolution
+{
+    // Each thread processes one valid pixel
+    const int id = blockIdx.x * blockDim.x + threadIdx.x;
+    if (id >= cnum) return; // Ensure thread ID is within bounds of valid pixels
+
+    // Get pixel coordinates (n, h, w) from flattened pix[id]
+    int tmp_pix_id = pix[id];
+    int w = tmp_pix_id % res;
+    tmp_pix_id = tmp_pix_id / res;
+    int h = tmp_pix_id % res;
+    int n = tmp_pix_id / res;
+
+    // Get start and end indices of depth points for this pixel
+    int start = ind[id];
+    int end = ind[id+1];
+
+    // Ensure valid depth range for binning
+    float depth_range = max_depth - min_depth;
+    if (depth_range <= 0) return; // Avoid division by zero
+
+    // Iterate through all depth points for this pixel
+    for (int i = start; i < end; ++i) {
+        float d_tmp = buffer[i];
+
+        // Normalize depth to [0, 1] relative to min/max depth
+        float normalized_depth = (d_tmp - min_depth) / depth_range;
+
+        // Calculate bin index
+        // Clamp to [0, num_bins-1] to handle depths slightly out of range
+        int bin_idx = (int)floorf(normalized_depth * num_bins);
+        bin_idx = max(0, min(bin_idx, num_bins - 1));
+
+        // Atomic increment the count for the corresponding bin
+        // fof tensor access: fof[batch][height][width][bin_channel]
+        atomicAdd(&fof[n][h][w][bin_idx], 1.0f); // Count occurrences in this bin
+        // Optional: If you want to store sum of depths in bin (then normalize later):
+        // atomicAdd(&fof[n][h][w][bin_idx], d_tmp);
+    }
+}
 
 __global__ void fof_normal_cuda_render_kernel1(
     torch::PackedTensorAccessor32<float,4,torch::RestrictPtrTraits> v,
@@ -227,109 +277,20 @@ __global__ void compact(int* cnt, int* cnt_pre, int* ccnt_pre, int* ind, int* pi
     pix[ccnt_pre[id]] = id; 
 }
 
-__global__ void automata(int* ind, float* buffer, int* direction, int cnum)
-{
-    const int id = blockIdx.x * blockDim.x + threadIdx.x;
-    if (id >= cnum) return;
 
-    // sort
-    int start = ind[id]; 
-    int end = ind[id+1];
-    for (int i=start+1; i<end; i++)
-    {
-        float tmp_buffer = buffer[i];
-        int tmp_direction = direction[i];
-        int pre = i-1;
-        while (pre>=start && compare(tmp_buffer, tmp_direction, buffer[pre], direction[pre]))
-        {
-            buffer[pre+1] = buffer[pre];
-            direction[pre+1] = direction[pre];
-            pre--;
-        }
-        buffer[pre+1] = tmp_buffer;
-        direction[pre+1] = tmp_direction;
-    }
+// lib/fof/fof_cuda.cu
 
-    // automata
-    int state = 0;
-    int pre = 0;
-    for (int i=start; i<end; i++)
-    if (state == 0)
-    {
-        if (direction[i]==0){
-            state = 1;
-            buffer[start+pre] = buffer[i];
-        }
-    }
-    else if (state == 1)
-    {
-        if (direction[i]==1){
-            state = 2;
-            buffer[start+pre+1] = buffer[i];
-        }
-    }
-    else if (state == 2) 
-    {
-        if (direction[i]==1){
-            buffer[start+pre+1] = buffer[i];
-        }else{
-            state = 1;
-            pre = pre+2;
-            buffer[start+pre] = buffer[i];
-        }
-    }
-
-    if (state==2) pre = pre+2;
-    for (int i=start+pre; i<end; i++) buffer[i] = 1024;
-}
-
-__global__ void intergral(
-    torch::PackedTensorAccessor32<float,4,torch::RestrictPtrTraits> fof,
-    int* ind, int* pix, float* buffer, int cnum, int num, int res, float PI)
-{
-    long long tid = blockIdx.x;
-    tid = tid * blockDim.x + threadIdx.x;
-    int id = tid / num;
-    if (id >= cnum) return;
-    int c = tid % num;
-    
-    int tmp = pix[id];
-    int w = tmp % res;
-    tmp = tmp/res;
-    int h = tmp % res;
-    int n = tmp/res;
-
-    int start = ind[id]; 
-    int end = ind[id+1];
-    if (c==0){
-        for (int i=start; i<end; i=i+2)
-        {
-            if (buffer[i]==1024) break;
-            fof[n][h][w][0] += buffer[i+1]-buffer[i];
-        }
-    }else{
-        for (int i=start; i<end; i=i+2)
-        {
-            if (buffer[i]==1024) break;
-            float t2 = buffer[i+1]+1;
-            float t1 = buffer[i]+1;
-            fof[n][h][w][c] += sin(t2*0.5*c*PI)-sin(t1*0.5*c*PI);
-        }
-        fof[n][h][w][c] /= 0.5*c*PI;
-    }
-}
-} // namespace
-
-torch::Tensor fof_cuda_dynamic(torch::Tensor v, int num, int res)
+torch::Tensor fof_cuda_dynamic(torch::Tensor v, int num_bins, int res, float min_depth, float max_depth) // Add min_depth, max_depth
 {
     cudaSetDevice(v.device().index());
-    auto fof = torch::zeros({v.size(0), res, res, num},
+    // FOF output tensor now represents depth histogram with num_bins channels
+    auto fof = torch::zeros({v.size(0), res, res, num_bins}, // num is now num_bins
                             torch::TensorOptions()
                                 .dtype(torch::kFloat32)
                                 .device(v.device().type(), v.device().index())
                                 .requires_grad(false));
-    
-    // pixels occ
+
+    // pixels occ (cnt, cnt_pre, ccnt, ccnt_pre remain the same for initial rasterization counts)
     int pnum = v.size(0)*res*res;
     int* cnt; cudaMalloc(&cnt, sizeof(int)*pnum);
     cudaMemset(cnt, 0, sizeof(int)*pnum);
@@ -341,15 +302,17 @@ torch::Tensor fof_cuda_dynamic(torch::Tensor v, int num, int res)
 
     const int threads = 1024;
     const dim3 blocks((v.size(1) + threads - 1) / threads, v.size(0));
+
+    // Step 1: Initial rasterization (remains the same)
     fof_cuda_render_kernel0<<<blocks, threads>>>(
         v.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
         res, cnt, ccnt
     );
 
-    int inum, cnum;
+    int inum, cnum; // inum is total depth points, cnum is total valid pixels
     {
-        void     *d_temp_storage = NULL;
-        size_t   temp_storage_bytes = 0;
+        void* d_temp_storage = NULL;
+        size_t temp_storage_bytes = 0;
         cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, cnt, cnt_pre, pnum);
         cudaMalloc(&d_temp_storage, temp_storage_bytes);
         cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, cnt, cnt_pre, pnum);
@@ -359,36 +322,56 @@ torch::Tensor fof_cuda_dynamic(torch::Tensor v, int num, int res)
         int tmp0, tmp1;
         cudaMemcpy(&tmp0, cnt+pnum-1, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&tmp1, cnt_pre+pnum-1, sizeof(int), cudaMemcpyDeviceToHost);
-        inum = tmp0+tmp1;
+        inum = tmp0+tmp1; // Total number of depth points across all pixels
         cudaMemcpy(&tmp0, ccnt+pnum-1, sizeof(int), cudaMemcpyDeviceToHost);
         cudaMemcpy(&tmp1, ccnt_pre+pnum-1, sizeof(int), cudaMemcpyDeviceToHost);
-        cnum = tmp0+tmp1;
+        cnum = tmp0+tmp1; // Total number of pixels that were hit by triangles
     }
     if (inum==0 || cnum==0)
         return fof.permute({0,3,1,2});
 
-    float* buffer; cudaMalloc(&buffer, sizeof(float)*inum);
-    int* direction; cudaMalloc(&direction, sizeof(int)*inum);
-    cudaMemcpy(ccnt, cnt_pre, sizeof(int)*pnum, cudaMemcpyDeviceToDevice);
+    float* buffer; cudaMalloc(&buffer, sizeof(float)*inum); // To store all depth values
+    int* direction; cudaMalloc(&direction, sizeof(int)*inum); // To store directions (might not be needed for histogram, but kept for simplicity of buffer filling)
+
+    cudaMemcpy(ccnt, cnt_pre, sizeof(int)*pnum, cudaMemcpyDeviceToDevice); // Re-use ccnt to pass starting indices for buffer filling
+
+    // Step 2: Collect all depth values into 'buffer' (fof_cuda_render_kernel1 remains mostly the same)
     fof_cuda_render_kernel1<<<blocks, threads>>>(
         v.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
-        res, ccnt, buffer, direction
+        res, ccnt, buffer, direction // direction might not be used later but is filled here
     );
 
-    int* ind; cudaMalloc(&ind, sizeof(int)*(cnum+1)); 
-    cudaMemcpy(&ind[cnum], &inum, sizeof(int), cudaMemcpyHostToDevice);
-    int* pix; cudaMalloc(&pix, sizeof(int)*cnum);
+    int* ind; cudaMalloc(&ind, sizeof(int)*(cnum+1)); // To store start/end indices for each valid pixel's depths
+    cudaMemcpy(&ind[cnum], &inum, sizeof(int), cudaMemcpyHostToDevice); // Set last element of ind to total depth points
+    int* pix; cudaMalloc(&pix, sizeof(int)*cnum); // To store flattened pixel indices
+    
+    // Step 3: Compact pixel info (remains the same)
     compact<<<(pnum+1023)/1024, 1024>>>(cnt, cnt_pre, ccnt_pre, ind, pix, pnum);
 
-    automata<<<(cnum+1023)/1024, 1024>>>(ind, buffer, direction, cnum);
+    // *******************************************************************
+    // IMPORTANT: Remove or comment out the automata call
+    // automata<<<(cnum+1023)/1024, 1024>>>(ind, buffer, direction, cnum);
+    // *******************************************************************
 
-    long long tmp = num;
-    tmp = tmp*cnum;
-    intergral<<<(tmp+1023)/1024, 1024>>>(
+    // *******************************************************************
+    // IMPORTANT: Remove or comment out the intergral call
+    // long long tmp_integral = num_bins; // num is now num_bins
+    // tmp_integral = tmp_integral*cnum;
+    // intergral<<<(tmp_integral+1023)/1024, 1024>>>(
+    //     fof.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
+    //     ind, pix, buffer, cnum, num_bins, res, PI
+    // );
+    // *******************************************************************
+
+    // Step 4: Call the new histogram kernel
+    // Pass ind, pix, buffer (containing all depths), cnum, num_bins, min_depth, max_depth, res
+    fof_cuda_histogram_kernel<<<(cnum+1023)/1024, 1024>>>( // Each block/thread processes one valid pixel
         fof.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
-        ind, pix, buffer, cnum, num, res, PI
+        ind, pix, buffer, cnum, num_bins, min_depth, max_depth, res
     );
 
+
+    // Free allocated memory (remains the same)
     cudaFree(ind);
     cudaFree(pix);
     cudaFree(buffer);
@@ -402,30 +385,24 @@ torch::Tensor fof_cuda_dynamic(torch::Tensor v, int num, int res)
 }
 
 
-int get_buffer_size(int pnum)
-{
-    void     *d_temp_storage = NULL;
-    size_t   temp_storage_bytes = 0;
-    int* tmp = NULL;
-    cub::DeviceScan::ExclusiveSum(d_temp_storage, temp_storage_bytes, tmp, tmp, pnum);
-    return temp_storage_bytes;
-}
+// lib/fof/fof_cuda.cu
 
 torch::Tensor fof_cuda_static(
-    torch::Tensor v, int num, int res, int pre_size,
+    torch::Tensor v, int num_bins, int res, int pre_size, // num is now num_bins
     torch::Tensor pix_cnt,
     torch::Tensor int_cnt,
     torch::Tensor pix_pre,
     torch::Tensor int_pre,
     torch::Tensor pix,
     torch::Tensor ind,
-    torch::Tensor pre_tmp,
-    torch::Tensor int_bbb,
-    torch::Tensor int_ddd
+    torch::Tensor pre_tmp, // This is for cub::DeviceScan temp storage
+    torch::Tensor int_bbb, // This buffer now holds all raw depth values (was 'buffer' in dynamic)
+    torch::Tensor int_ddd, // This buffer now holds all raw direction values (was 'direction' in dynamic)
+    float min_depth, float max_depth // Add min_depth, max_depth
 )
 {
     cudaSetDevice(v.device().index());
-    auto fof = torch::zeros({v.size(0), res, res, num},
+    auto fof = torch::zeros({v.size(0), res, res, num_bins}, // num is now num_bins
                             torch::TensorOptions()
                                 .dtype(torch::kFloat32)
                                 .device(v.device().type(), v.device().index())
@@ -437,14 +414,16 @@ torch::Tensor fof_cuda_static(
 
     const int threads = 1024;
     const dim3 blocks((v.size(1) + threads - 1) / threads, v.size(0));
+    
+    // Step 1: Initial rasterization
     fof_cuda_render_kernel0<<<blocks, threads>>>(
         v.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
         res, int_cnt.data_ptr<int>(), pix_cnt.data_ptr<int>()
     );
 
-    
+    // Prefix sum for counts (remains the same)
     void* tmp_ptr = (void*) pre_tmp.data_ptr<unsigned char>();
-    size_t tmp_size = pre_size;
+    size_t tmp_size = pre_size; // pre_size is the size of temp_storage_bytes from cub
     cub::DeviceScan::ExclusiveSum(tmp_ptr, tmp_size, pix_cnt.data_ptr<int>(), pix_pre.data_ptr<int>(), pnum);
     cub::DeviceScan::ExclusiveSum(tmp_ptr, tmp_size, int_cnt.data_ptr<int>(), int_pre.data_ptr<int>(), pnum);
     int inum = int_cnt[pnum-1].item<int>() + int_pre[pnum-1].item<int>();
@@ -453,29 +432,42 @@ torch::Tensor fof_cuda_static(
     if (inum==0 || cnum==0)
         return fof.permute({0,3,1,2});
 
-
-    cudaMemcpy(pix_cnt.data_ptr<int>(), int_pre.data_ptr<int>(), sizeof(int)*pnum, cudaMemcpyDeviceToDevice);
+    cudaMemset(pix_cnt.data_ptr<int>(), 0, sizeof(int)*pnum); // Reset for next kernel
+    // Step 2: Collect all depth values into int_bbb and int_ddd (used as buffer and direction)
     fof_cuda_render_kernel1<<<blocks, threads>>>(
         v.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
-        res, pix_cnt.data_ptr<int>(), int_bbb.data_ptr<float>(),
-        int_ddd.data_ptr<int>()
+        res, pix_cnt.data_ptr<int>(), int_bbb.data_ptr<float>(), // int_bbb is now our depth buffer
+        int_ddd.data_ptr<int>() // int_ddd is now our direction buffer
     );
 
-
+    // Step 3: Compact pixel info
     cudaMemcpy(&ind.data_ptr<int>()[cnum], &inum, sizeof(int), cudaMemcpyHostToDevice);
     compact<<<(pnum+1023)/1024, 1024>>>(int_cnt.data_ptr<int>(), int_pre.data_ptr<int>(), pix_pre.data_ptr<int>(),
-                                        ind.data_ptr<int>(), pix.data_ptr<int>(), pnum);
-    automata<<<(cnum+1023)/1024, 1024>>>(ind.data_ptr<int>(), int_bbb.data_ptr<float>(), int_ddd.data_ptr<int>(), cnum);
+                                         ind.data_ptr<int>(), pix.data_ptr<int>(), pnum);
+    
+    // *******************************************************************
+    // IMPORTANT: Remove or comment out the automata call
+    // automata<<<(cnum+1023)/1024, 1024>>>(ind.data_ptr<int>(), int_bbb.data_ptr<float>(), int_ddd.data_ptr<int>(), cnum);
+    // *******************************************************************
 
-    intergral<<<(num*cnum+1023)/1024, 1024>>>(
+    // *******************************************************************
+    // IMPORTANT: Remove or comment out the intergral call
+    // intergral<<<(num_bins*cnum+1023)/1024, 1024>>>( // num is now num_bins
+    //     fof.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
+    //     ind.data_ptr<int>(), pix.data_ptr<int>(),
+    //     int_bbb.data_ptr<float>(), cnum, num_bins, res, PI
+    // );
+    // *******************************************************************
+
+    // Step 4: Call the new histogram kernel
+    fof_cuda_histogram_kernel<<<(cnum+1023)/1024, 1024>>>(
         fof.packed_accessor32<float,4,torch::RestrictPtrTraits>(),
         ind.data_ptr<int>(), pix.data_ptr<int>(),
-        int_bbb.data_ptr<float>(), cnum, num, res, PI
+        int_bbb.data_ptr<float>(), cnum, num_bins, min_depth, max_depth, res
     );
 
     return fof.permute({0,3,1,2});
 }
-
 
 std::vector<torch::Tensor> fof_normal_cuda_static(
     torch::Tensor v, torch::Tensor vn,
