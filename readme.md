@@ -124,7 +124,7 @@ If you find this code useful for your research, please use the following BibTeX 
 ```
 ```
 @inproceedings{fofx,
-  author = {Qiao Feng and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
+  author = {Qiao Feng and Yuanwang Yang and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
   title = {FOF-X: Towards Real-time Detailed Human Reconstruction from a Single Image},
   booktitle = {ArXiv:2412.05961},
   year={2024},
