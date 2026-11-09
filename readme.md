@@ -1,5 +1,5 @@
 # FOF-X: Towards Real-time Detailed Human Reconstruction from a Single Image
-[website](https://cic.tju.edu.cn/faculty/likun/projects/FOFX/index.html) | [arxiv](https://arxiv.org/pdf/2412.05961)
+[website](https://cic.tju.edu.cn/faculty/likun/projects/FOFX/index.html) | [paper](https://doi.org/10.1109/TMM.2026.3696142) | [arxiv](https://arxiv.org/pdf/2412.05961)
 
 # FOF: Learning Fourier Occupancy Field for Monocular Real-time Human Reconstruction
 [website](https://cic.tju.edu.cn/faculty/likun/projects/FOF/index.html) | [paper](https://cic.tju.edu.cn/faculty/likun/projects/FOF/imgs/FOF_paper.pdf)
@@ -203,7 +203,7 @@ Finally, you can change the default ```path``` and ```name_file``` of ```TrainSe
 
 ## Citation
 
-If you find this code useful for your research, please use the following BibTeX entry.
+If you find this code useful for your research, please use the following BibTeX entries.
 
 ```
 @inproceedings{li2022neurips,
@@ -214,10 +214,13 @@ If you find this code useful for your research, please use the following BibTeX 
 }
 ```
 ```
-@inproceedings{fofx,
+@article{fofx,
   author = {Qiao Feng and Yuanwang Yang and Yebin Liu and Yu-Kun Lai and Jingyu Yang and Kun Li},
-  title = {FOF-X: Towards Real-time Detailed Human Reconstruction from a Single Image},
-  booktitle = {ArXiv:2412.05961},
-  year={2024},
+  title = {{FOF-X}: Towards Real-time Detailed Human Reconstruction from a Single Image},
+  journal = {IEEE Transactions on Multimedia},
+  volume = {28},
+  pages = {9662--9672},
+  year={2026},
+  doi = {10.1109/TMM.2026.3696142},
 }
 ```
