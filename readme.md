@@ -18,7 +18,7 @@ conda activate fof
 # visit https://pytorch.org/
 # install latest pytorch
 # for example:
-# conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
 
 pip install tqdm
 pip install opencv-python
@@ -28,10 +28,15 @@ pip install ninja
 pip install tensorboard      # train.py
 pip install pytest trimesh   # tests
 ```
+`lib/fof` itself only needs `torch`, `numpy`, `scipy` and `scikit-image`; the other packages are for the scripts.
 
 The CUDA extension (`lib/fof/csrc`: the mesh->FOF rasterizer and the GPU marching cubes) is compiled automatically
-the first time it is used (this needs `nvcc` matching your PyTorch CUDA version, and `ninja`). Alternatively build
-it ahead of time:
+the first time it is used. This needs `ninja` and a CUDA toolkit (`nvcc` 11.8 or newer, set `CUDA_HOME` if it is not
+found) of the same major version as your PyTorch build (`torch.version.cuda`; another minor version only gives a
+warning) that supports your GPU (RTX 50xx / Blackwell: CUDA 12.8 or newer, and a PyTorch build for it).
+`TORCH_CUDA_ARCH_LIST` (e.g. `"8.6;8.9;12.0"`) builds for other GPUs than the visible one. Tested with Python 3.10,
+PyTorch 2.7.1 + CUDA 12.8 on an RTX PRO 6000 Blackwell, and PyTorch 2.5.1 on CPU. Alternatively build it ahead of
+time:
 ```
 cd lib/fof
 sh compile.sh      # python setup.py build_ext --inplace
