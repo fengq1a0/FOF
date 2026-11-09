@@ -17,7 +17,8 @@ class TrainSet(torch.utils.data.Dataset):
                  use_normal=True,
                  use_smpl = True,
                  use_smpl_normal = False,
-                 use_img = False) -> None:
+                 use_img = False,
+                 max_faces = 100000) -> None:
         super().__init__()
         self.path = path
         self.num_view = num_view
@@ -29,9 +30,10 @@ class TrainSet(torch.utils.data.Dataset):
         with open(os.path.join(self.path, name_file), "r") as f:
             self.nameList = f.read().split()
         
-        self.v = torch.zeros((len(self.nameList), 100000, 3, 3))
+        # Triangle soups padded with zero-area triangles (skipped by the renderer).
+        self.v = torch.zeros((len(self.nameList), max_faces, 3, 3))
         if self.use_normal:
-            self.vn = torch.zeros((len(self.nameList), 100000, 3, 3))
+            self.vn = torch.zeros((len(self.nameList), max_faces, 3, 3))
         for i in range(len(self.nameList)):
             mesh = o3d.io.read_triangle_mesh(
                 os.path.join(self.path, "100k-180", self.nameList[i]+".ply")
@@ -39,15 +41,17 @@ class TrainSet(torch.utils.data.Dataset):
             mesh_v = np.asarray(mesh.vertices)
             mesh_f = np.asarray(mesh.triangles)
             mesh_vn = np.asarray(mesh.vertex_normals)
+            if mesh_f.shape[0] > max_faces:
+                raise ValueError("%s has %d faces, more than max_faces=%d (see preprocess.py)"
+                                 % (self.nameList[i], mesh_f.shape[0], max_faces))
+            if self.use_normal and mesh_vn.shape[0] != mesh_v.shape[0]:
+                raise ValueError("%s has no vertex normals" % self.nameList[i])
             self.v[i,:mesh_f.shape[0]] = torch.from_numpy(mesh_v[mesh_f].astype(np.float32))
             if self.use_normal:
                 self.vn[i,:mesh_f.shape[0]] = torch.from_numpy(mesh_vn[mesh_f].astype(np.float32))
         
-        if self.use_smpl:
-            self.smpl_v = torch.zeros((len(self.nameList), 13776, 3, 3))
-        if self.use_smpl_normal:
-            self.smpl_vn = torch.zeros((len(self.nameList), 13776, 3, 3))
         if self.use_smpl or self.use_smpl_normal:
+            smpl_v, smpl_vn = [], []
             for i in range(len(self.nameList)):
                 mesh = o3d.io.read_triangle_mesh(
                     os.path.join(self.path, "smpl-180", self.nameList[i]+".ply")
@@ -55,9 +59,13 @@ class TrainSet(torch.utils.data.Dataset):
                 mesh_v = np.asarray(mesh.vertices)
                 mesh_f = np.asarray(mesh.triangles)
                 mesh_vn = np.asarray(mesh.vertex_normals)
-                self.smpl_v[i] = torch.from_numpy(mesh_v[mesh_f].astype(np.float32))
+                smpl_v.append(torch.from_numpy(mesh_v[mesh_f].astype(np.float32)))
                 if self.use_smpl_normal:
-                    self.smpl_vn[i] = torch.from_numpy(mesh_vn[mesh_f].astype(np.float32))
+                    smpl_vn.append(torch.from_numpy(mesh_vn[mesh_f].astype(np.float32)))
+            # SMPL(-X) meshes share their topology (13776 faces for SMPL, 20908 for SMPL-X)
+            self.smpl_v = torch.stack(smpl_v)
+            if self.use_smpl_normal:
+                self.smpl_vn = torch.stack(smpl_vn)
 
         Rs = []
         for i in range(self.num_view):
